@@ -606,9 +606,9 @@
       // 获取地理位置（ipwho.is 支持 HTTPS，免费稳定）
       let city = "未知", country = "未知";
       try {
-        const geo = await fetch("https://freeipapi.com/api/json").then(r => r.json());
-        city = geo.city || "未知";
-        country = geo.country || "未知";
+        const geo = await fetch("https://ipinfo.io/json?token=17909a723fbfb6").then(r => r.json());
+city = geo.city || "未知";
+country = geo.country || "未知";
       } catch(e) {
         // 地理位置获取失败，继续记录其他信息
       }
